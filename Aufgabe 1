@@ -1,0 +1,49 @@
+#! /usr/bin/env python3
+# Aufgabe 1: Schichtenmodell mit Scapy
+# In diesem Beispiel erstellen wir ein einfaches Schichtenmodell mit drei benutzerdefinierten Protokollen (Schicht1, Schicht2, Schicht3) und zeigen wie daraus ein Frame aufgebaut wird. Wir verwenden Scapy, um die Protokolle zu definieren, Frames zu erstellen und zu analysieren.
+from PIL.ImtImagePlugin import field
+# Vervollständigen Sie den Code, um die Schichten zu definieren, Frames zu erstellen und aus den Rohdaten wieder zu parsen.
+
+from scapy.all import *
+
+class Schicht1(Packet):
+    name = "Netzwerkschicht"
+    fields_desc = [StrFixedLenField("adress", "default",length=11)]    # TODO: Hier können Sie Felder hinzufügen, z.B. eine Adresse
+
+class Schicht2(Packet):
+    name = "Transportschicht"
+    fields_desc = [ByteField("Daten",0)]    # TODO: Hier können Sie Felder hinzufügen, z.B. die Länge der Daten
+
+class Schicht3(Packet):
+    name = "Anwendungsschicht"
+    fields_desc = [StrFixedLenField("Serialnummer","default", length =18)]    # TODO: Hier können Sie Felder hinzufügen, z.B. eine Seriennummer
+
+# Schichten miteinander verbinden bzw. "stapeln"
+bind_layers(Schicht1, Schicht2)
+bind_layers(Schicht2, Schicht3)
+
+# Erstellen eines Frames mit den Schichten und einem Payload
+data_to_send = "Hello World!"
+length_of_data = len(data_to_send)
+
+# TODO: Füllen Sie die Felder der Schichten mit den entsprechenden Werten
+frame = Schicht1(adress="2.26.36.188") / Schicht2(Daten=8) / Schicht3(Serialnummer = "ISBN 9783802725456") / Raw(load=data_to_send)
+
+# Konvertieren des Frames in Bytes. Diese Bytes würden über das Netzwerk gesendet werden.
+frame_bytes = bytes(frame)
+print("\nRaw bytes to be sent(hex):", frame_bytes.hex(" "))
+
+# Hinweis: In einem echten Szenario würden diese Bytes über das Netzwerk gesendet und auf der Empfängerseite wieder empfangen werden. Hier simulieren wir dies, indem wir die Bytes direkt verwenden.
+
+# Von den empfangenen Bytes zurück zum Frame parsen
+parsed_frame = Schicht1(frame_bytes)
+
+print("\nParsed frame from received bytes:")
+
+# Access individual layers
+# TODO: Greifen Sie auf die Felder der Schichten zu und drucken Sie sie aus
+print(f"\nSchicht1 Address: ",parsed_frame[Schicht1].adress)
+print(f"Schicht2 Length: ",parsed_frame[Schicht2].Daten)
+print(f"Schicht3 Serial Number: ",parsed_frame[Schicht3].Serialnummer)
+print(f"Payload: ",parsed_frame[Raw].load)
+parsed_frame.show()
