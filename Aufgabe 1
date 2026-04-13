@@ -8,26 +8,30 @@ from scapy.all import *
 
 class Schicht1(Packet):
     name = "Netzwerkschicht"
-    fields_desc = [StrFixedLenField("adress", "default",length=11)]    # TODO: Hier können Sie Felder hinzufügen, z.B. eine Adresse
+    fields_desc = [IntField("adress", 0)]    # TODO: Hier können Sie Felder hinzufügen, z.B. eine Adresse
 
 class Schicht2(Packet):
     name = "Transportschicht"
-    fields_desc = [ByteField("Daten",0)]    # TODO: Hier können Sie Felder hinzufügen, z.B. die Länge der Daten
+    fields_desc = [ShortField("Daten", 0),
+                   ShortField("Checksum", 0)]    # TODO: Hier können Sie Felder hinzufügen, z.B. die Länge der Daten
 
 class Schicht3(Packet):
     name = "Anwendungsschicht"
-    fields_desc = [StrFixedLenField("Serialnummer","default", length =18)]    # TODO: Hier können Sie Felder hinzufügen, z.B. eine Seriennummer
+    fields_desc = [IntField("Serialnummer", 0)]    # TODO: Hier können Sie Felder hinzufügen, z.B. eine Seriennummer
 
 # Schichten miteinander verbinden bzw. "stapeln"
 bind_layers(Schicht1, Schicht2)
 bind_layers(Schicht2, Schicht3)
 
 # Erstellen eines Frames mit den Schichten und einem Payload
-data_to_send = "Hello World!"
+data_to_send = "HelloWorld"
 length_of_data = len(data_to_send)
+checksum = sum(data_to_send.encode()) % 65535
+
 
 # TODO: Füllen Sie die Felder der Schichten mit den entsprechenden Werten
-frame = Schicht1(adress="2.26.36.188") / Schicht2(Daten=8) / Schicht3(Serialnummer = "ISBN 9783802725456") / Raw(load=data_to_send)
+frame = Schicht1(adress=0xC0A80101) / Schicht2(Daten=length_of_data, Checksum=checksum) / Schicht3(Serialnummer=0x12345678) / Raw(load=data_to_send)
+
 
 # Konvertieren des Frames in Bytes. Diese Bytes würden über das Netzwerk gesendet werden.
 frame_bytes = bytes(frame)
@@ -47,3 +51,14 @@ print(f"Schicht2 Length: ",parsed_frame[Schicht2].Daten)
 print(f"Schicht3 Serial Number: ",parsed_frame[Schicht3].Serialnummer)
 print(f"Payload: ",parsed_frame[Raw].load)
 parsed_frame.show()
+
+gesamt_bytes = len(frame_bytes)
+payload_bytes = len(parsed_frame[Raw].load)
+
+gesendete_bits = payload_bytes * 8
+gesamt_bits = gesamt_bytes * 8
+
+effizienz = (gesendete_bits * 100) / gesamt_bits
+print(f"\nEffizienz: {effizienz:.2f}%")
+
+
